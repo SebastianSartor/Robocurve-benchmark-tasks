@@ -1,0 +1,18 @@
+{
+  "title": "Zip an already-started baby jacket",
+  "category": "Societal relatability",
+  "keywords": [
+    "zipper",
+    "garment",
+    "bimanual"
+  ],
+  "instruction": "Use your left arm to pin the jacket down against the table so it stays still. While holding it down, use your right arm to grab the orange zipper pull and zip the jacket up to the collar. If it stops short, regrasp the orange pull and finish sliding it to the top stop. Let go once the zipper reaches the top.",
+  "context": "Closing a garment zipper requires holding flexible fabric steady while guiding the pull along a narrow path.",
+  "setup": "Lay a padded baby jacket front up and hem toward the arms. The cloth is about 240 mm long and 370 mm across the extended sleeves, with an 8 mm fabric thickness. The zipper is 180 mm long. Start at 20 mm above the hem with the pin seated and the orange pull exposed. The zipper origin is at (145, 0) mm. Coordinates are measured in the tabletop plane with +x away from the arms and +y to robot-left.",
+  "scoring": "Score the fraction of the remaining 160 mm of travel closed. Score zero if the pin protrudes more than 3 mm at any point. Award 1.0 if the slider is within 3 mm of the top and both gripper tool centers are more than 40 mm from the garment and zipper. Otherwise cap the score at 0.9625.",
+  "run_limit": "4,800 control steps (240 simulated seconds at 20 Hz)",
+  "reset_notes": "Restore the documented starting arrangement and wait for cloth to settle before each run.",
+  "fidelity": "The continuous deformable jacket has a sewn hem bridge. Rigid internal rails approximate zipper travel and the moving teeth are rendered from slider position. Individual teeth and cloth snags are outside the physics model.",
+  "scores": "Dream-1: 0.070686100050807 in 1200 steps. Scripted demo: 1.00 (raw 1.0) in 503 steps.",
+  "media": "M-NUDDYH"
+}
