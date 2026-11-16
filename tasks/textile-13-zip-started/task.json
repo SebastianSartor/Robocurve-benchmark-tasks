@@ -12,7 +12,7 @@
   "scoring": "Score the fraction of the remaining 160 mm of travel closed. Score zero if the pin protrudes more than 3 mm at any point. Award 1.0 if the slider is within 3 mm of the top and both gripper tool centers are more than 40 mm from the garment and zipper. Otherwise cap the score at 0.9625.",
   "run_limit": "4,800 control steps (240 simulated seconds at 20 Hz)",
   "reset_notes": "Restore the documented starting arrangement and wait for cloth to settle before each run.",
-  "fidelity": "The simulation represents the jacket shell, lining, and batting as one continuous deformable surface with a sewn hem bridge. The orange pull is an oversized solid 18 × 16 × 24 mm cuboid rigidly fixed to the slider. The matching physical attachment is a custom 3D-printed PETG block with 40% infill fixed to the real metal slider as specified in the setup. The wider, thicker grasp faces and fixed orientation make it easier to grasp than a typical thin, hinged zipper tab. Rigid internal rails approximate zipper travel. The visible teeth follow slider position, and the physics omits individual tooth meshing and cloth snags.",
+  "fidelity": "The jacket is one deformable surface with a sewn hem bridge. The simulated pull is an oversized solid 18 × 16 × 24 mm block fixed to the slider. Its physical counterpart is the 3D-printed PETG block (40% infill) glued to the slider with J-B Weld PlasticBonder Tan. The larger faces and fixed orientation ease grasping compared with a thin hinged tab. Rigid rails approximate travel. Visible teeth follow the slider. The physics omits tooth meshing and cloth snags.",
   "scores": "Dream-1: 0.070686100050807 in 1200 steps. Scripted demo: 1.00 (raw 1.0) in 503 steps.",
   "media": "M-NUDDYH"
 }
