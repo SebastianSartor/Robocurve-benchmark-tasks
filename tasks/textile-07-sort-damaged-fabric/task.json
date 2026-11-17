@@ -1,0 +1,18 @@
+{
+  "title": "Inspect and sort damaged and intact fabric",
+  "category": "Impact on jobs",
+  "keywords": [
+    "fabric inspection",
+    "defect sorting",
+    "cloth handling"
+  ],
+  "instruction": "Put the cloth with the square hole fully inside the red zone labeled Damaged. Put the cloth without a hole fully inside the green zone labeled Undamaged. Use the raised tape tabs to pick up the cloths. Release both cloths inside their zones.",
+  "context": "Quality control inspectors check materials against a defect standard and separate rejected pieces from usable stock. Here the visible through-hole determines which destination receives each cloth, and the grippers must transfer and release both deformable pieces inside their marked areas.",
+  "setup": "Use two 140 × 100 × 5 mm teal-and-cream terry cloth panels. The panel at (170, −120) mm has a 25 × 25 mm hole. The panel at (170, 120) mm is intact. Center the 180 × 140 mm red Damaged zone at (380, 120) mm and the green Undamaged zone at (380, −120) mm. Use seed 0. Coordinates are measured in the tabletop plane with +x away from the arms and +y to robot-left. Fit both swatches with identical orange tabs on the top face, centered at an offset of (−44, 27) mm from each swatch center. For each tab, fold a 60 mm length of nominal 25 mm Pro Pocket Gaff cotton cloth tape over a 25 mm wide, 18 mm tall, 3.4 mm thick PETG stiffener. Press the two adhesive feet flat on the cloth. Each foot extends about 10 mm from the bottom of the stiffener. The exposed grip is 25 × 4 × 18 mm, width × thickness × height.",
+  "scoring": "Score half the fraction of each panel’s projected fabric area in its correct zone, summed over the panels. A held panel earns no credit. Exclude the hole and count overlapping folds once.",
+  "run_limit": "3,600 control steps (180 simulated seconds at 20 Hz)",
+  "reset_notes": "Restore the documented starting arrangement and wait for cloth to settle before each run.",
+  "fidelity": "Both 5 mm washcloths are surface deformable. The damaged swatch has a physical cutout. Each simulated 25 × 4 × 18 mm tape-wrapped PETG grip is a rigid block attached to the cloth mesh. The tape feet, peeling, and independent tape flex are omitted. Release uses 80 mm tool-center clearance from the swatch and its tab.",
+  "scores": "Dream-1 scored 0.00 in 1,200 actions. Scripted expert scored 1 in 952 actions. Goal met.",
+  "media": "M-WFJ3R8"
+}
