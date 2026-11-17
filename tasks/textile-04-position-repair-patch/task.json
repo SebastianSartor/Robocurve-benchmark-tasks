@@ -1,0 +1,18 @@
+{
+  "title": "Lay a fabric repair patch flat over a hole",
+  "category": "Societal relatability",
+  "keywords": [
+    "fabric repair",
+    "coverage",
+    "precision placement"
+  ],
+  "instruction": "Grip the raised tape tab on the loose green square patch and place the patch over the square hole in the blue cloth. Cover the entire opening, with at least 2 millimeters of patch extending past each side. Smooth the patch flat against the blue cloth and let go.",
+  "context": "When mending a fabric item, position the patch so it covers the tear and leaves enough material around the opening to fasten it later. The small handling tab gives the gripper a pinch point. The task measures the flat coverage that remains after release.",
+  "setup": "Lay a blue 140 × 100 × 3.2 mm cloth centered at (170, 0) mm. It has a centered 25 × 25 mm square cutout. Lay a green 35 × 35 × 2.4 mm cloth patch centered at (170, 91) mm, entirely separate from the base. Both lie flat on the work surface. Coordinates are measured in the tabletop plane with +x away from the arms and +y to robot-left. Cut a 48 mm length of nominal 25 mm orange Pro Pocket Gaff cotton cloth tape and trim it to 13 mm wide. Fold it over a 13 mm wide, 15 mm tall, 3.4 mm thick PETG stiffener. Press the two adhesive feet flat on the green patch's top face, centered at an offset of (−8, 8) mm from the patch center. Each foot extends about 7 mm from the bottom of the stiffener. The raised grip is 13 × 4 × 15 mm, width × thickness × height.",
+  "scoring": "After release, score 0.6 times the fraction of the opening covered plus 0.4 times the fraction of the centered 29 × 29 mm margin square covered, viewed from above. For goal completion the patch must rest on the base. Folded-over patch area counts once.",
+  "run_limit": "3,600 control steps (180 simulated seconds at 20 Hz)",
+  "reset_notes": "Restore the documented starting arrangement and wait for cloth to settle before each run.",
+  "fidelity": "The two pieces are deformable. The base has a mesh cutout and patch coverage is measured on cloth geometry. The real raised grip is trimmed cotton cloth tape folded over a PETG stiffener. In simulation it is a solid 13 × 4 × 15 mm block attached to a small region of the patch. The tape feet, peeling, and independent tape flex are omitted. Release is estimated from gripper clearance to the cloth and the tab.",
+  "scores": "Dream-1 scored 0.00 in 1,200 actions. Scripted expert scored 1 in 292 actions. Goal met.",
+  "media": "M-V85NTN"
+}
