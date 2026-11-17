@@ -1,0 +1,20 @@
+{
+  "title": "Retrieve the exact stock bottle for a prescription",
+  "category": "Impact on jobs",
+  "keywords": [
+    "pharmacy",
+    "label reading",
+    "look-alike names",
+    "strength matching",
+    "stock picking"
+  ],
+  "instruction": "Read the name and strength on the prescription card. Pick the stock bottle that matches both. Place it upright, completely inside the green STAGING zone, and let go. Leave every other bottle in its marked shelf slot.",
+  "context": "Before filling a prescription, pharmacy staff verify the stock name and strength. This task couples that check with withdrawing one bottle from a row of look-alike packages, keeping adjacent bottles in their slots, and staging the selected bottle upright. The products and prescription are fictional.",
+  "setup": "Use six identical opaque HDPE-style bottles with polypropylene-style fixed caps, 46 mm in diameter, 86 mm high, and 85 g each. Face their labels toward the robots. Place the bottles upright on a 100 × 430 × 12 mm shelf board centered at (300, 0) mm. Slot outlines are 56 × 56 mm, at x=300 mm and y=−175, −105, −35, 35, 105, and 175 mm. For seed 0 in that order, the labels read NERAVIX 25 mg, NERAVEX 10 mg, NERAVIX 10 mg, SELDRIN 25 mg, NERAVEX 25 mg, and LUMETRA 10 mg. Lay the 97 × 124 mm NERAVIX 25 mg prescription card at (155, 186) mm. Mark a green 120 × 120 mm STAGING zone centered at (155, 0) mm. Coordinates are station-relative, with +x away from the arms and +y to robot-left. Print bottle names and strengths at 15 pt or larger.",
+  "scoring": "Score s × (1 − d). Set s to 1 for the exact match fully inside the zone, released, at rest on the table and within 15° of upright. Set s to 0.5 for a fully inside, released, resting target tipped past 15°, or 0.25 when the target base is entirely outside its slot and the bottle is outside or partly outside the zone. Otherwise s is zero. Set d to half the number of other bottles whose bases no longer intersect their original slots, capped at 1. A wrong bottle staged on its own earns zero.",
+  "fidelity": "Each closed bottle is one rigid body with separate cylindrical body and cap colliders. Label textures move with the bottles. The prescription and identifiers are fictional. Staging uses projected body and cap geometry, a 6 mm support tolerance, final speed under 10 mm/s and spin under 0.5 rad/s, and a 30 mm tool-center clearance estimate for release. No loose pills or cap articulation are modeled.",
+  "run_limit": "2,400 actions (120 simulated seconds at 20 Hz)",
+  "reset_notes": "Restore the bottles upright at their marked centers with all labels facing the starting direction. Choose a new seed to shuffle the bottles and choose a new prescription from the two look-alike names and two strengths.",
+  "scores": "Dream-1 scored 0.00 on seed 0 in 1,200 actions. The scripted expert scored 1.00 on both seeds 0 and 1, 313 actions per demo.",
+  "media": "M-JNW7EL"
+}
