@@ -11,8 +11,11 @@ from yam_arena.inspect_embodiment import (
     ARMS, DESKTOP_DISPLAY, DESKTOP_SIZE, JOINT_GUIDE, YamArenaEmbodiment, window_display,
 )
 
-from .jacket_fabric import FABRIC_NAME, jacket_spawner
-from .mechanism import BRACE_HANDLE, CONTROL_HZ, ORIGIN_XY, PIN_HANDLE, SLIDER_HANDLE, author_mechanism
+from .jacket_fabric import FABRIC_NAME, jacket_spawner, initial_vertices
+from .mechanism import (
+    BRACE_POINT, CONTROL_HZ, INITIAL_PIN, LENGTH, ORIGIN_XY, PIN_GRASP, PIN_LIMITS, SLIDER_HANDLE,
+    author_mechanism, pin_seated,
+)
 from .scoring import Reading
 from .visual import ZipperVisual
 
@@ -49,7 +52,7 @@ def make_station(initial_slider, *, rig, wrist_cam_mount, device, auxiliary_grip
         initial_pose=pose,
         asset_cfg_addon={
             "init_state": ArticulationCfg.InitialStateCfg(
-                joint_pos={"slider_travel": initial_slider, "pin_release": 0.0}
+                joint_pos={"slider_travel": 0.0, "pin_axial": INITIAL_PIN[0], "pin_lateral": INITIAL_PIN[1], "pin_height": INITIAL_PIN[2]}
             ),
         },
     )
@@ -58,19 +61,38 @@ def make_station(initial_slider, *, rig, wrist_cam_mount, device, auxiliary_grip
         enable_cameras=True, wrist_cam_mount=wrist_cam_mount, contact_sensors=False, rig=rig,
     )
     visual = None
-    slider_joint = None
 
-    def animate_zipper(env, env_ids):
-        nonlocal visual, slider_joint
+    def update_zipper(env, env_ids):
+        nonlocal visual
         asset = env.scene["zipper"]
+        names = ("slider_travel", "pin_axial", "pin_lateral", "pin_height")
+        joint_ids = [asset.joint_names.index(name) for name in names]
+        positions = asset.data.joint_pos.torch[0, joint_ids].cpu().numpy()
+        limits = asset.data.default_joint_pos_limits.torch.clone()
+        if not hasattr(env, "zipper_engaged"):
+            env.zipper_engaged = False
+        if not hasattr(env, "zipper_locked"):
+            env.zipper_locked = False
+        if not env.zipper_locked:
+            env.zipper_engaged = bool(pin_seated(positions[1:]) and (env.zipper_engaged or positions[0] < 0.003))
+        if env.zipper_engaged and positions[0] > 0.006:
+            env.zipper_locked = True
+        limits[:, joint_ids[0], 1] = LENGTH if env.zipper_engaged else 0.002
+        if env.zipper_locked:
+            for joint_id in joint_ids[1:]:
+                limits[:, joint_id, 0] = -0.0004
+                limits[:, joint_id, 1] = 0.0004
+        asset.write_joint_position_limit_to_sim_index(limits=limits)
         if visual is None:
             visual = ZipperVisual(env.scene.stage, f"{env.scene.env_prim_paths[0]}/zipper")
-            slider_joint = asset.joint_names.index("slider_travel")
-        visual.update(asset.data.joint_pos.torch[0, slider_joint].item())
+        visual.update(positions[0], positions[1:], env.zipper_engaged)
 
     def reset_zipper(env, env_ids, asset_cfg, pose, velocity=None):
         set_object_pose(env, env_ids, asset_cfg, pose, velocity)
         asset = env.scene[asset_cfg.name]
+        env.zipper_engaged = False
+        env.zipper_locked = False
+        asset.write_joint_position_limit_to_sim_index(limits=asset.data.default_joint_pos_limits.torch.clone())
         asset.write_joint_state_to_sim_index(
             position=asset.data.default_joint_pos.torch[env_ids],
             velocity=asset.data.default_joint_vel.torch[env_ids],
@@ -81,6 +103,9 @@ def make_station(initial_slider, *, rig, wrist_cam_mount, device, auxiliary_grip
         asset = env.scene[asset_cfg.name]
         # The custom mesh origin is the zipper rail, so resetting by centroid would move the seam.
         state = asset.data.default_nodal_state_w.torch[env_ids].clone()
+        rest = initial_vertices() + (*ORIGIN_XY, TABLE_TOP + 0.001)
+        state[:, :, :3] = env.scene.env_origins[env_ids, None, :] + env.scene["zipper"].data.default_root_pose.torch.new_tensor(rest)
+        state[:, :, 3:] = 0
         asset.write_nodal_state_to_sim_index(state, env_ids=env_ids)
         asset.reset(env_ids=env_ids)
 
@@ -88,7 +113,7 @@ def make_station(initial_slider, *, rig, wrist_cam_mount, device, auxiliary_grip
         env_cfg = env_cfg_callback(CONTROL_HZ)(env_cfg)
         env_cfg.events.zipper.func = reset_zipper
         env_cfg.events.animate_zipper = EventTermCfg(
-            func=animate_zipper, mode="interval", interval_range_s=(0.0, 0.0), is_global_time=True,
+            func=update_zipper, mode="interval", interval_range_s=(0.0, 0.0), is_global_time=True,
         )
         event = getattr(env_cfg.events, FABRIC_NAME)
         event.func = reset_fabric
@@ -154,9 +179,9 @@ class ZipperEmbodiment(YamArenaEmbodiment):
         }
         self.jacket = self._base.scene["zipper"]
         self.slider_joint = self.jacket.joint_names.index("slider_travel")
-        self.pin_joint = self.jacket.joint_names.index("pin_release")
+        self.pin_joints = [self.jacket.joint_names.index(name) for name in ("pin_axial", "pin_lateral", "pin_height")]
         self.handle_bodies = [self.jacket.body_names.index(name) for name in ("Base", "Slider", "PinSide")]
-        self.handle_offsets = np.array([BRACE_HANDLE[0], SLIDER_HANDLE[0], PIN_HANDLE[0]])
+        self.handle_offsets = np.array([BRACE_POINT, SLIDER_HANDLE[0], PIN_GRASP])
 
     def reset(self, scene, *, seed=None):
         observation = super().reset(scene, seed=seed)
@@ -183,7 +208,7 @@ class ZipperEmbodiment(YamArenaEmbodiment):
         centers = self.handle_positions()
         if not self.auxiliary_grips:
             fabric = self._base.scene[FABRIC_NAME].data.nodal_pos_w.torch[0].cpu().numpy()
-            centers = np.concatenate([centers[1:2], fabric])
+            centers = np.concatenate([centers[1:], fabric])
         hands = []
         for side in ("left", "right"):
             name = f"{side}_robot"
@@ -191,7 +216,8 @@ class ZipperEmbodiment(YamArenaEmbodiment):
             angles = self._base.scene[name].data.joint_pos.torch[0, arm_joints].cpu().numpy()
             hands.append(tcp_pose(angles, BASES[side])[0])
         clearance = np.linalg.norm(centers[:, None, :] - hands, axis=2).min()
-        return Reading(float(joint_pos[self.slider_joint]), float(-joint_pos[self.pin_joint]), bool(clearance > 0.04))
+        return Reading(float(joint_pos[self.slider_joint]), *map(float, joint_pos[self.pin_joints]),
+                       bool(getattr(self._base, "zipper_engaged", False)), bool(clearance > 0.04))
 
     def step(self, action):
         result = super().step(action)
@@ -204,7 +230,11 @@ class ZipperEmbodiment(YamArenaEmbodiment):
         for _ in range(40):
             self._env.step(self._ready)
         final = self.reading()
-        if not (abs(final.slider_m - self.initial_slider) < 0.004 and abs(final.pin_out_m) < 0.003):
+        pose = self.jacket.data.root_link_pose_w.torch[0].cpu().numpy()
+        if np.linalg.norm(pose[:2] - ORIGIN_XY) > 0.020 or np.linalg.norm(pose[3:5]) > 0.15:
+            raise RuntimeError(f"The jacket moved or tipped during settling: {pose}")
+        if not (abs(final.slider_m) < 0.004 and final.pin_y_m < -0.012
+                and -0.005 <= final.pin_z_m <= 0.021 and not final.engaged):
             raise RuntimeError(f"Zipper did not retain its initial state: {final}")
         nodes = self._base.scene[FABRIC_NAME].data.nodal_pos_w.torch[0]
         heights = nodes[:, 2] - TABLE_TOP

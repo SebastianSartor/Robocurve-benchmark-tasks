@@ -1,42 +1,57 @@
-# Zip an already-started baby jacket
+# Start and zip a baby jacket
 
-Use your left arm to pin the jacket down against the table so it stays still. While holding it down, use your right arm to grab the orange zipper pull and zip the jacket up to the collar. If it stops short, regrasp the orange pull and finish sliding it to the top stop. Let go once the zipper reaches the top.
+The separating pin starts fully outside its retaining box. The robot must align and insert it before zipping the jacket to its collar and letting go. The scene is fixed; seed 0 is used for both recordings.
 
-Closing a garment zipper requires holding flexible fabric steady while guiding the pull along a narrow path.
+## Recorded evidence
 
-## Reproduce
+| Recording | Score | Actions | Simulated time |
+| --- | --- | --- | --- |
+| Dream-1 | 0.0 | 1,200 | 60.0 s |
+| Scripted expert | 1.0 | 1,178 | 58.9 s |
 
-Run from this folder on the RoboCurve YAM Isaac Lab Arena launchable. The fixed evidence layout is seed 0. The maximum runtime is 240 simulated seconds at 20 Hz.
+The expert first seats the pin at 29.1 s and begins closing at 36.6 s. Final slider travel is 179.43 mm of 180 mm, the pin remains seated, and both gripper TCPs are clear. `results/` contains the scores, expert state trace and framework revision. Videos and the initial setup screenshot are uploaded to the task board and referenced by `task.json`'s media ID.
+
+The expert sends arm/gripper joint targets using the YAM inverse kinematics utilities. It never sets the pin, slider or garment poses during the demonstration. Its diagonal grasp clears the orange attachment; its insertion servo estimates velocity from several position samples. The recordings share identical scene geometry and physics. The exploratory expert invocation allowed a larger action cap, but completed in 1,178 actions, below this task's 1,200-action limit. The submitted CLI enforces that limit.
+
+## Reproduce a trial
+
+Use the standard RoboCurve YAM Isaac Lab Arena launchable with cameras enabled. The recorded YAM Arena revision is `0059d02a1a91bc6834c1d0846022891df0c78730`. Required Python packages come from its supplied environment, including Isaac Lab Arena, `yam_arena`, Inspect Robots and its Dream policy plugin, NumPy, trimesh, Pillow, OpenCV and imageio-ffmpeg. FFmpeg is used for video export. The mesh and texture are included; the optional Triangle package is only needed to regenerate them.
+
+Run each trial in a fresh Python process from this folder:
 
 ```bash
 source /data/IsaacLab-Arena/yam.env
-python -m textile_13_zip_started --dream --max-steps 1200 --log-dir runs/dream
-python -m zipper.expert --benchmark-start --output runs/demo
+
+# Validate the parked-arm scene and save setup/loose-pin images.
+python task.py --output /tmp/jacket-preview
+
+# Record and score the full scripted demonstration, seed 0.
+python task.py --expert --max-steps 1200 --output /tmp/jacket-expert
+
+# Dream credentials must already be configured privately through the SDK.
+# Run 1,200 actions and export the combined three-camera MP4.
+bash run-dream.sh /tmp/jacket-dream
 ```
 
-The recorded Dream run used 1,200 steps (one minute). The Dream command records the three robot cameras and the evaluation JSON. The scripted command records the robot cameras and writes a measured score JSON. Use a fresh run directory for a new attempt.
+Use a new output directory for each recording. Pass `--live` to `task.py` to open the Isaac Sim viewport. The expert writes `scripted-demo.mp4`, `scripted-score.json` and `states.json`. Dream writes its Inspect Robots evaluation, score, action log and camera frames; `run-dream.sh` exports `dream.mp4`. Each recorded trial lasts at most one simulated minute. The successful expert took approximately 3.2 minutes wall time on an L40S including startup; startup and inference latency vary by machine.
 
-## Setup
+## Physical dimensions and printed attachments
 
-Lay a padded baby jacket front up, with its sleeves extended and its hem toward the arms. For a physical replica, use a woven polyester shell and lining with quilted polyester batting. Match the simulated dimensions of approximately 240 mm hem to collar, 370 mm cuff to cuff, and 8 mm uncompressed fabric thickness.
+The jacket uses a woven polyester shell/lining with quilted polyester batting, approximately 240 mm long, 370 mm across sleeves and 8 mm thick. The one-way separating zipper has 180 mm of travel, molded acetal teeth, polyester tape and zinc-alloy slider/pin/box hardware.
 
-Use a one-way, open-end separating garment zipper with 180 mm of slider travel, molded acetal teeth on woven polyester tape, and a zinc-alloy non-locking slider. Use the zipper’s bottom insertion pin and retaining box. A [YKK VISLON Standard open-end zipper](https://www.ykkfastening.com/products/search/detail.html?pdid1=VISLON%28R%29+Standard) is a reference for the molded-tooth design. Select a zipper and matching slider that meet the specified materials and travel.
+The 10 × 2.5 × 2.5 mm pin and 10 × 7 × 4.5 mm box follow the 10 mm component pair listed in [PandaHall repair set FIND-PH0028-52](https://www.pandahall.com/p-4233884-48pcs-12-styles-clothing-accessories-zinc-alloy-zipper-repair-accessories-insert-box-and-pin-fix-retainer-mixed-color.html). This is a dimensional reference, not a claim that every repair component fits every zipper. The simulated 3.2 × 3.2 mm straight internal channel is an approximation. The starting sequence follows [YKK's insertion instructions](https://ykkamericas.com/wp-content/uploads/2021/10/ykk-zipper-instruction-manual-compressed.pdf): seat the pin through the slider into the box before closing.
 
-### Physical pull attachment
+Two custom PETG attachments are part of the task's specified physical setup:
 
-1. 3D-print a rectangular block in orange PETG at a **0.2 mm layer height** and **40% infill**, then measure it with calipers. Make it **18 mm along the zipper, 16 mm across the zipper, and 24 mm tall**. Keep both opposing grip faces flat.
-2. Remove the stock hinged tab. Dry-fit the block directly over the slider crown. If needed, fit a rigid PETG spacer below the block to put its center about **36 mm above the tabletop** when the jacket lies flat. Keep the spacer below the gripping faces.
-3. Degrease the mating faces, lightly roughen them with sandpaper, and remove the dust. Mix equal parts of **J-B Weld PlasticBonder Tan (SKU 50133)**, a two-part urethane adhesive. Spread a thin layer on the mating faces, center the block, and hold it in place with light clamping pressure. Wipe away squeeze-out before it sets. Keep the adhesive clear of the slider channel, teeth, and tape. Let it cure for at least **one hour at room temperature** and follow any longer cure time printed on the package. Once cured, tug the block by hand to check for movement, then run the slider through its full travel to verify that it moves freely. [Adhesive instructions](https://www.jbweld.com/product/plastic-bonder-syringe)
-4. Seat the insertion pin fully, move the slider **20 mm up from the hem**, and leave the orange block exposed. Place the zipper origin at **(145, 0) mm** in the tabletop plane, with +x away from the arms and +y to robot-left.
+- Orange slider pull: 18 × 16 × 24 mm block bonded to the metal slider, leaving its sliding path clear.
+- Blue reinforced-tape grip: 14 × 10 × 6 mm assembled clip. Print two 14 × 10 × 2.8 mm plates. Sandwich the reinforced zipper tape in a 0.4 mm combined tape/adhesive gap and clamp to 6 mm finished thickness. Orient the 14 mm dimension along the zipper, with the clip center 18 mm collarward and 2 mm above the pin center.
 
-## Scoring
+Print at 0.2 mm layer height and 40% infill. Bond with J-B Weld PlasticBonder Tan (50133), cleaning and lightly sanding PETG/metal mating surfaces, mixing equal parts and holding at least one hour at room temperature. Keep adhesive clear of the insertion channel, teeth and slider. `fabrication/` includes millimeter-unit STL files and editable OpenSCAD geometry. The printed clip and its bond to reinforced tape are a proposed reproducible counterpart to the simulated grip; no physical hardware trial is claimed.
 
-Score the fraction of the remaining 160 mm of travel closed. Score zero if the pin protrudes more than 3 mm at any point. Award 1.0 if the slider is within 3 mm of the top and both gripper tool centers are more than 40 mm from the garment and zipper. Otherwise cap the score at 0.9625.
+## Mechanism and scoring
 
-## Fidelity and assets
+The pin has three passive translation joints, no position drives, and fixed rotation. The slider stays within 2 mm of the hem until the measured pin offset is within 0.5 mm in each axis. Once the slider moves 6 mm after insertion, the pin is retained by tightening joint limits. The latch changes constraints without setting object poses. The jacket has deformable panels joined across the shoulders with separate lower hems and partially rigid zipper-tape rails.
 
-The simulation represents the jacket shell, lining, and batting as one continuous deformable surface with a sewn hem bridge. The orange pull is an oversized solid **18 × 16 × 24 mm** cuboid rigidly fixed to the slider. The physical reference is the custom 3D-printed PETG attachment with 40% infill described above. Its wider, thicker grasp faces and fixed orientation make it easier to grasp than a typical thin, hinged tab. Rigid internal rails approximate zipper travel. The visible teeth follow slider position, and the physics omits individual tooth meshing and cloth snags. The physical replica is specified here for reproduction. The recorded trials used the simulator.
+Score zero until insertion. Once seated, score 0.25 + 0.70 × closed fraction, capped at 0.95 until the slider is within 3 mm of the top and both gripper TCPs are more than 40 mm from cloth vertices and grip centers; then award 1.0. An unseated pin scores zero. `zipper/scoring.py` implements the rubric.
 
-Task-specific fabric meshes and textures are generated from the included source. The robot, calibrated station and controller come from the RoboCurve YAM Isaac Lab Arena launchable. Dependencies include NumPy, Pillow, Shapely 2.x, Trimesh, Inspect Robots and the launchable's Isaac Lab packages.
-
-Recorded environment: Isaac Lab `37ddf6268717`, Isaac Lab Arena `c7edf3a9d5d8`, and YAM Arena `0059d02a1a91`.
+The fixed pin rotation, rigid pin-to-grip link, simplified channel, approximate hardware masses/friction and animated teeth limit fidelity. Actual tape buckling near the clip, tooth interlocking and cloth snags are not modeled. Both enlarged solid grips represent the specified custom attachments, rather than standard zipper hardware.

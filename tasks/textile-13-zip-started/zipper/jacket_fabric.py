@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from .mechanism import INITIAL_PIN
+
 import numpy as np
 
 
@@ -68,8 +70,8 @@ def make_jacket():
 
     right = left * (1, -1, 1)
     count = len(left)
-    # Connect the matching boundary edges behind the slider's bottom stop.
-    hem = np.flatnonzero(np.isclose(left[:, 1], 0.009) & (left[:, 0] < -0.003))
+    # The jacket remains connected across the shoulders. Its separating hem is open.
+    hem = np.flatnonzero(np.isclose(left[:, 1], 0.009) & (left[:, 0] > 0.145) & (left[:, 0] < 0.178))
     hem = hem[np.argsort(left[hem, 0])]
     start, end = hem[:-1], hem[1:]
     bridge = np.vstack((
@@ -79,6 +81,16 @@ def make_jacket():
     vertices = np.vstack((left, right))
     triangles = np.vstack((faces, faces[:, ::-1] + count, bridge))
     return trimesh.Trimesh(vertices=vertices, faces=triangles, process=False)
+
+
+def initial_vertices():
+    """Fold the lower corner while keeping the sewn cloth's flat rest shape."""
+    vertices = np.asarray(make_jacket().vertices).copy()
+    right = vertices[:, 1] < 0
+    weight = np.clip((0.175 - vertices[:, 0]) / 0.150, 0, 1) * right
+    vertices += weight[:, None] * np.asarray(INITIAL_PIN)
+    vertices[:, 2] += 0.020 * np.sin(np.pi * weight)
+    return vertices
 
 
 def _finish_panel(stage, path, mesh):
@@ -137,24 +149,32 @@ def _sew_to_rails(stage, path):
     )
     zipper = cloth.GetParentPath().AppendChild("zipper")
     points = UsdGeom.Mesh(sim_prim).GetPointsAttr().Get()
-    excluded = [zipper.AppendChild("Slider")]
-    for side, link, foot in ((1, "Base", "BraceFoot"), (-1, "PinSide", "PinFoot")):
-        rail = zipper.AppendChild(link)
-        # Leave a flexible section between the joined hem and the moving pin-side tape.
-        seam = [i for i, point in enumerate(points) if 0 < side * point[1] < 0.018 and 0.005 < point[0] < 0.177]
-        if len(seam) < 8:
-            raise RuntimeError(f"Too few seam nodes on {path} for {link}")
-        attachment = stage.DefinePrim(cloth.AppendChild(f"{link}Seam"), "OmniPhysicsVtxXformAttachment")
+    excluded = [zipper.AppendChild(name) for name in ("Base", "Slider", "PinSide")]
+    vertices = np.asarray(points)
+    left = np.flatnonzero((vertices[:, 1] > 0) & (vertices[:, 1] < 0.018)
+                          & (vertices[:, 0] > 0.005) & (vertices[:, 0] < 0.177))
+    pin_local = vertices
+    lower_right = np.flatnonzero((pin_local[:, 1] < -0.005) & (pin_local[:, 1] > -0.028)
+                                 & (pin_local[:, 0] > 0.005) & (pin_local[:, 0] < 0.025))
+    for name, link, indices, local in (
+        ("LeftSeam", "Base", left, vertices),
+        ("PinTapeSeam", "PinSide", lower_right, pin_local),
+    ):
+        if len(indices) < 4:
+            raise RuntimeError(f"Too few seam nodes for {name}: {len(indices)}")
+        attachment = stage.DefinePrim(cloth.AppendChild(name), "OmniPhysicsVtxXformAttachment")
         attachment.GetRelationship("omniphysics:src0").SetTargets([sim_prim.GetPath()])
-        attachment.GetRelationship("omniphysics:src1").SetTargets([rail])
-        attachment.GetAttribute("omniphysics:vtxIndicesSrc0").Set(seam)
-        attachment.GetAttribute("omniphysics:localPositionsSrc1").Set([Gf.Vec3f(points[i]) for i in seam])
-        excluded.append(rail.AppendChild("RailSupport"))
-        foot_path = rail.AppendChild(foot)
-        if stage.GetPrimAtPath(foot_path).IsValid():
-            excluded.append(foot_path)
-    # Isolate hidden hardware from cloth contact while keeping it available to the grippers.
+        attachment.GetRelationship("omniphysics:src1").SetTargets([zipper.AppendChild(link)])
+        attachment.GetAttribute("omniphysics:vtxIndicesSrc0").Set(indices.tolist())
+        attachment.GetAttribute("omniphysics:localPositionsSrc1").Set([Gf.Vec3f(*map(float, local[i])) for i in indices])
+    excluded = [
+        prim.GetPath()
+        for link in excluded
+        for prim in Usd.PrimRange(stage.GetPrimAtPath(link))
+        if prim.HasAPI(UsdPhysics.CollisionAPI)
+    ]
     UsdPhysics.FilteredPairsAPI.Apply(sim_prim).CreateFilteredPairsRel().SetTargets(excluded)
+
 
 
 def jacket_spawner():
